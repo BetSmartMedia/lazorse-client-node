@@ -2,18 +2,18 @@
   "author": "Stephen Sugden <stephen@betsmartmedia.com> (http://betsmartmedia.com/)",
   "name": "lazorse-client",
   "description": "Client for lazorse web services",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "repository": {
     "type": "git",
     "url": "git://github.com/BetSmartMedia/lazorse-client.git"
   },
-	"main": "client",
+  "main": "client",
   "engines": {
     "node": "~0.6.9"
   },
-	"dependencies": {
-		"uri-template": ""
-	},
+  "dependencies": {
+    "uri-template": ""
+  },
   "devDependencies": {},
   "optionalDependencies": {}
 }
