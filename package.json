@@ -5,7 +5,7 @@
   "version": "0.4.2",
   "repository": {
     "type": "git",
-    "url": "git://github.com/BetSmartMedia/lazorse-client.git"
+    "url": "git://github.com/BetSmartMedia/lazorse-client-node.git"
   },
   "main": "client",
   "engines": {
