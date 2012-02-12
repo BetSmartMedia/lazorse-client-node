@@ -14,6 +14,13 @@
   "dependencies": {
     "uri-template": ""
   },
+  "scripts": {
+    "prepublish": "coffee -c client.coffee"
+  },
+  "files": [
+    "client.coffee",
+    "client.js"
+  ],
   "devDependencies": {},
   "optionalDependencies": {}
 }
