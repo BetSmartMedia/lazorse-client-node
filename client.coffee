@@ -4,23 +4,15 @@ parse_template = require('uri-template').parse
 module.exports = class LazyAppClient
   constructor: (@config, cb) ->
     request.call @, 'GET', '/', (err, routes) =>
+      if not err and routes.statusCode != 200
+        err = new Error res.error or res.warning
       if err
         if cb then return cb err else throw err
-      if routes.statusCode != 200
-        throw new Error res.error or res.warning
       
-      for route in routes then do (route) =>
-        shortName = route.shortName
-        shortName = shortName.substring(0,1).toUpperCase() + shortName.substring(1)
-        for method in route.methods then do (method) =>
-          methodName = method.toLowerCase() + shortName
-          tpl = parse_template(route.template)
-          @[methodName] = (tpl_vars={}, body=null, cb) =>
-            request.call(@, method, tpl.expand(tpl_vars), body, cb)
-      # Don't collect loop results
+      for route in routes
+        installRoute.call @, route
 
       cb() if cb
-      return null
 
   ###
   A hook for subclasses to alter the request (e.g. add special headers)
@@ -32,6 +24,15 @@ module.exports = class LazyAppClient
   A hook for subclasses to alter the response data
   ###
   post_request: (data) -> undefined
+
+  installRoute = (route) ->
+    shortName = route.shortName
+    shortName = shortName.substring(0,1).toUpperCase() + shortName.substring(1)
+    for method in route.methods then do (method) =>
+      methodName = method.toLowerCase() + shortName
+      tpl = parse_template(route.template)
+      @[methodName] = (tpl_vars={}, body=null, cb) ->
+        request.call(@, method, tpl.expand(tpl_vars), body, cb)
 
   request = (method, path, body, cb) ->
     if not cb
