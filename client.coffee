@@ -15,75 +15,24 @@ exports.LazyAppClient = class LazyAppClient
 
       cb() if cb
 
-  ##
-  # A hook for subclasses to alter the request (e.g. add special headers)
-  # before sending it off.
-  ##
-  pre_request: (request_opts, body) -> undefined
+  pre_request: (request_opts, body) ->
+    ### A hook for subclasses to alter request options before sending it off. ###
+    undefined
 
-  ##
-  # A hook for subclasses to alter the response data
-  ##
-  post_request: (data) -> undefined
+  post_request: (data, opts, res) ->
+    ### A hook for subclasses to alter response data ###
+    undefined
 
-  ##
-  # Convenience method for .request('GET', ...)
-  ##
-  get: (path, cb) -> request.call @, 'GET', path, null, cb
+  get: (path, cb) ->
+    ### Convenience method for .request('GET', ...) ###
+    request.call @, 'GET', path, null, cb
 
-  ##
-  # Convenience method for .request('POST', ...)
-  ##
-  post: (path, body, cb) -> request.call @, 'POST', path, body, cb
+  post: (path, body, cb) ->
+    ### Convenience method for .request('POST', ...) ###
+    request.call @, 'POST', path, body, cb
 
-
-
-##
-# Convert a response object to a JSON string
-##
-exports.toJSON = toJSON = ->
-  src = @
-  dest = {}
-
-  uniqid = -> return 'x' + (new Date).getTime() + Math.floor(Math.random() * 10000)
-
-  # walk the object, replacing duplicate instance of the same object
-  # with string-based reference markers that point to the location
-  # of the "real" data within the object
-  walk = (src, dst, path, crumbs) ->
-    for k,v of src
-      if v is null or typeof v isnt 'object'
-        dst[k] = v unless k == '_crumb'
-        continue
-      if v._crumb
-        # seen this object already, so replace it with a reference marker
-        dst[k] = 'ref:' + crumbs[v._crumb]
-      else
-        # first time we've seen this object - add a crumb
-        id = uniqid()
-        crumbs[id] = path + k
-        v._crumb = id
-        # and recurse...
-        dst[k] = if util.isArray(v) then [] else {}
-        walk v, dst[k], path + k + '/', crumbs
-
-  # clean up any leftover '_crumb' properties in the source object
-  clean = (obj) ->
-    for k,v of obj
-      continue unless typeof v is 'object'
-      continue if v is null
-      if v._crumb
-        delete v._crumb
-        clean v
-
-  walk src, dest, '/', []
-  clean src
-  return dest
-
-##
-# Convert a JSON string into a response object
-##
-exports.fromJSON = fromJSON = (str) ->
+deref = (obj) ->
+  ### Convert string refs back into circular refs ###
   obj = JSON.parse str
 
   # convert a string-based reference marker into the real object data
@@ -114,12 +63,12 @@ exports.fromJSON = fromJSON = (str) ->
     walk obj, obj
   return obj
 
-##
-# Setup a new route handler that can be called as a method
-# of a LazyAppClient instance.
-##
-installRoute = (route) ->
-  shortName = route.shortName
+installMethods = (resource) ->
+  ###
+  Setup a new route handler that can be called as a method
+  of a LazyAppClient instance.
+  ###
+  shortName = resource.shortName
   shortName = shortName.substring(0,1).toUpperCase() + shortName.substring(1)
   for method in route.methods then do (method) =>
     tpl = parse_template(route.template)
@@ -144,11 +93,11 @@ installRoute = (route) ->
             Object.defineProperty data.data, 'toJSON', {value: toJSON}
         cb(err, data)
 
-##
-# Send a single request to the API and return the JSON-decoded
-# response.
-##
 request = (method, path, body, cb) ->
+  ###
+  Send a single request to the API and return the JSON-decoded
+  response.
+  ###
   if not cb
     cb = body
     body = null
@@ -168,8 +117,8 @@ request = (method, path, body, cb) ->
   @pre_request opts, body
   req = http.request opts, (res) => recv.call @, res, (err, data) =>
     return cb err if err?
-    return cb data.error if data.error?
-    @post_request data
+    deref data
+    @post_request data, opts, res
     cb null, data
   req.on 'error', (e) -> console.log e.stack; cb e
   req.write body if body
