@@ -129,84 +129,20 @@ installRoute = (route) ->
       body    = opts.body or null
       inlines = opts.inlines or []
       recurse = opts.recurse or false
-      request.call @, method, tpl.expand(vars), body, (err, data) =>
+      url     = tpl.expand(vars)
+      if inlines.length > 0
+        url = url + (if url.indexOf('?') == -1 then '?' else '&')
+        url = url + 'inline=' + inlines.join(',')
+        if recurse then url = url + '&inlineRecursive=true'
+      request.call @, method, url, body, (err, data) =>
         return cb(err) if err?
-        urls = {}
-        fetch_inlines.call @, data, inlines, recurse, urls, (err) =>
-          if data.data?
-            if util.isArray data.data
-              for o in data.data
-                Object.defineProperty o, 'toJSON', {value: toJSON}
-            else
-              Object.defineProperty data.data, 'toJSON', {value: toJSON}
-          cb(err, data)
-
-##
-# Resolve any inline references that were requested in the 'inlines'
-# array. If 'recurse' is set, then recursively resolve inlines on
-# all fetched data.
-##
-fetch_inlines = (data, inlines, recurse, urls, cb) ->
-  inline_fill_data.call @, data, urls, inlines, []
-  open = ->
-    for k,v of urls
-      return true unless v.data?
-    return false
-  if open()
-    inline_fetch_urls.call @, urls, (err) =>
-      return cb(err) if err?
-      if recurse
-        fetch_inlines.call @, data, inlines, true, urls, cb
-      else
-        inline_fill_data.call @, data, urls, inlines, []
-        cb()
-  else
-    cb()
-
-##
-# Fetch an array of URLs in parallel.
-##
-inline_fetch_urls = (urls, cb) ->
-  num = 0
-  for k,v of urls
-    num++ unless v.data?
-  tick = ticker num, (err) -> cb err
-  for k,v of urls
-    continue if v.data?
-    do (k) =>
-      request.call @, 'GET', k, null, (err, data) ->
-        return tick err if err?
-        urls[k].data = data.data
-        tick()
-
-##
-# Iterate through a data array, replacing inline URL references
-# with their associated data. If the inline data isn't already
-# available in `urls` then we will make an entry there so the caller
-# can fetch the data and call us again.
-#
-# Uses a breadcrumb trail to protect against cyclic references.
-##
-inline_fill_data = (data, urls, inlines, crumbs) ->
-  for k,v of data
-    # if we've seen this data already, then don't recurse further
-    continue if v in crumbs
-    if typeof v is 'object'
-      crumbs.push v
-      inline_fill_data.call @, data[k], urls, inlines, crumbs
-      continue
-    continue unless k in inlines
-    # make sure this reference looks like a relative URL
-    continue unless v.substr(0, 1) is '/'
-    if urls[v]?.data?
-      data[k] = urls[v].data
-      if not urls[v].inlined
-        inline_fill_data.call @, data[k], urls, inlines, crumbs
-        urls[v].inlined = true
-    else
-      # Put this in the URL list now, and the next run of fetch_inlines()
-      # will see it, fetch it, and call us again to populate it.
-      urls[v] = data: null, inlined: false
+        if data.data?
+          if util.isArray data.data
+            for o in data.data
+              Object.defineProperty o, 'toJSON', {value: toJSON}
+          else
+            Object.defineProperty data.data, 'toJSON', {value: toJSON}
+        cb(err, data)
 
 ##
 # Send a single request to the API and return the JSON-decoded
@@ -255,10 +191,5 @@ recv = (res, cb) ->
       return cb e
     cb null, data
 
-# Synchronization for dummies
-ticker = (num, cb) ->
-  (err) ->
-    return cb(err) if err?
-    cb() if --num == 0
 
 # vim: expandtab:
