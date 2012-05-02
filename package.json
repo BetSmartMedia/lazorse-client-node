@@ -2,7 +2,7 @@
   "author": "Stephen Sugden <stephen@betsmartmedia.com> (http://betsmartmedia.com/)",
   "name": "lazorse-client",
   "description": "Client for lazorse web services",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "repository": {
     "type": "git",
     "url": "git://github.com/BetSmartMedia/lazorse-client-node.git"
