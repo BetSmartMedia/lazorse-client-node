@@ -1,8 +1,10 @@
 http = require 'http'
 util = require 'util'
 parse_template = require('uri-template').parse
+{EventEmitter} = require 'events'
 
-exports.LazyAppClient = class LazyAppClient
+
+exports.LazyAppClient = class LazyAppClient extends EventEmitter
   constructor: (@config, cb) ->
     request.call @, 'GET', '/', null, (err, routes) =>
       if not err and routes.statusCode != 200
@@ -13,6 +15,7 @@ exports.LazyAppClient = class LazyAppClient
       for route in routes.data
         installRoute.call @, route
 
+      @emit 'ready'
       cb() if cb
 
   pre_request: (request_opts, body) ->
