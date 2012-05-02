@@ -13,7 +13,7 @@ exports.LazyAppClient = class LazyAppClient extends EventEmitter
         if cb then return cb err else throw err
 
       for route in routes.data
-        installRoute.call @, route
+        installMethods.call @, route
 
       @emit 'ready'
       cb() if cb
@@ -36,8 +36,7 @@ exports.LazyAppClient = class LazyAppClient extends EventEmitter
 
 deref = (obj) ->
   ### Convert string refs back into circular refs ###
-  obj = JSON.parse str
-
+ 
   # convert a string-based reference marker into the real object data
   get_ref = (path, data) ->
     # lose the 'ref:/' and split
@@ -73,8 +72,8 @@ installMethods = (resource) ->
   ###
   shortName = resource.shortName
   shortName = shortName.substring(0,1).toUpperCase() + shortName.substring(1)
-  for method in route.methods then do (method) =>
-    tpl = parse_template(route.template)
+  for method in resource.methods then do (method) =>
+    tpl = parse_template(resource.template)
     methodName = method.toLowerCase() + shortName
     @[methodName] = (opts, cb) ->
       vars    = opts.vars or {}
@@ -88,12 +87,6 @@ installMethods = (resource) ->
         if recurse then url = url + '&inlineRecursive=true'
       request.call @, method, url, body, (err, data) =>
         return cb(err) if err?
-        if data.data?
-          if util.isArray data.data
-            for o in data.data
-              Object.defineProperty o, 'toJSON', {value: toJSON}
-          else
-            Object.defineProperty data.data, 'toJSON', {value: toJSON}
         cb(err, data)
 
 request = (method, path, body, cb) ->
