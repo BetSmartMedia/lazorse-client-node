@@ -8,7 +8,7 @@ exports.LazyAppClient = class LazyAppClient extends EventEmitter
   constructor: (@config, cb) ->
     request.call @, 'GET', '/', null, (err, routes) =>
       if not err and routes.statusCode != 200
-        err = new Error res.error or res.warning
+        err = new Error routes?.error or routes?.warning or "Failed to get index"
       if err
         if cb then return cb err else throw err
 
